@@ -37,7 +37,7 @@ jobs:
       run: |
         sudo apt-get install -y unzip
         curl -LO https://releases.hashicorp.com/terraform/1.0.0/terraform_1.0.0_linux_amd64.zip
-        unzip terraform_1.0.0_linux_amd64.zip
+        unzip -o terraform_1.0.0_linux_amd64.zip  # Add -o to force overwrite
         sudo mv terraform /usr/local/bin/
         terraform --version
 
