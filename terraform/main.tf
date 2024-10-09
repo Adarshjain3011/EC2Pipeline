@@ -26,7 +26,7 @@ resource "aws_instance" "app_instance" {
 
 # Security Group
 resource "aws_security_group" "app_sg" {
-  name        = "app_security_group_unique3"
+  name        = "app_security_group_unique4"
   description = "Allow SSH and HTTP traffic"
   vpc_id      = "vpc-0e4b9c9310698f115"
 
