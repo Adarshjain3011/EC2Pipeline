@@ -86,6 +86,10 @@ jobs:
           chmod 600 ~/.ssh/adarsh-password.pem
           # SSH into EC2 and run deployment commands
           ssh -o "StrictHostKeyChecking=no" -i ~/.ssh/adarsh-password.pem ubuntu@${{ env.EC2_PUBLIC_IP }} << 'EOF'
+
+          # Update package list and install Node.js and npm
+            sudo apt-get update
+            sudo apt-get install -y nodejs npm
             # Commands to deploy your application
             git clone https://github.com/Adarshjain3011/EC2Pipeline.git
             cd EC2Pipeline # Change to your repository folder
