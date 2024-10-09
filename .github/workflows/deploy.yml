@@ -84,7 +84,7 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.YOUR_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh -o "StrictHostKeyChecking=no" -i ~/.ssh/id_rsa Windows-EC2-Key.pem@${{ env.EC2_PUBLIC_IP }} << 'EOF'
+          ssh -o "StrictHostKeyChecking=no" -i ~/.ssh/id_rsa Windows-EC2-Key.pem ubuntu@${{ env.EC2_PUBLIC_IP }} << 'EOF'
             # Deploy your application code
             git clone https://github.com/Adarshjain3011/EC2Pipeline.git
             cd your-repo
