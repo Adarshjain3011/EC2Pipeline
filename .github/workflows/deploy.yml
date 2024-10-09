@@ -10,94 +10,103 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # Step 1: Checkout the code
-    - name: Checkout code
-      uses: actions/checkout@v2
+      # Step 1: Checkout the code
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    # Step 2: Set up Node.js
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '16'
+      # Step 2: Set up Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
 
-    # Step 3: Install project dependencies
-    - name: Install dependencies
-      run: npm install
+      # Step 3: Install project dependencies
+      - name: Install dependencies
+        run: npm install
 
-    # Step 4: Configure AWS credentials for Terraform
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: us-east-1 # Replace with your region
+      # Step 4: Configure AWS credentials for Terraform
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1 # Replace with your region
 
-    # Step 5: Set up Terraform
-    - name: Set up Terraform
-      run: |
-        sudo apt-get install -y unzip
-        # Remove existing terraform directory if it exists
-        if [ -d /usr/local/bin/terraform ]; then
-        echo "Removing existing terraform directory"
-        sudo rm -rf /usr/local/bin/terraform  # Forcefully remove the terraform directory
-        fi
-        # Download Terraform
-        curl -LO https://releases.hashicorp.com/terraform/1.0.0/terraform_1.0.0_linux_amd64.zip
-        # Unzip and move the terraform binary to /usr/local/bin
-        unzip terraform_1.0.0_linux_amd64.zip
-        # Check if terraform is a directory, if so, remove it
-        if [ -d terraform ]; then
-        echo "Removing old terraform directory from the unzipped content"
-        rm -rf terraform
-        fi
-        sudo mv terraform /usr/local/bin/
-        terraform --version
+      # Step 5: Set up Terraform
+      - name: Set up Terraform
+        run: |
+          # Install unzip if it's not already installed
+          sudo apt-get install -y unzip
 
-    # Step 6: Initialize Terraform
-    - name: Initialize Terraform
-      working-directory: ./terraform
-      run: terraform init
+          # Remove any existing terraform binary or directory
+          if [ -f /usr/local/bin/terraform ]; then
+            echo "Removing existing terraform binary"
+            sudo rm /usr/local/bin/terraform
+          elif [ -d /usr/local/bin/terraform ]; then
+            echo "Removing existing terraform directory"
+            sudo rm -rf /usr/local/bin/terraform
+          fi
 
-    # Step 7: Apply Terraform
-    - name: Apply Terraform
-      working-directory: ./terraform
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      run: |
-        terraform apply -auto-approve \
-          -var "aws_access_key=${{ secrets.AWS_ACCESS_KEY_ID }}" \
-          -var "aws_secret_key=${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
-          -var "key_pair=${{ secrets.KEY_PAIR }}" \
-          -var "ami_id=${{ secrets.AMI_ID }}"
+          # Download the specified version of Terraform
+          curl -LO https://releases.hashicorp.com/terraform/1.0.0/terraform_1.0.0_linux_amd64.zip
 
-    # Step 8: Get the public IP of the EC2 instance
-    - name: Get EC2 Instance Public IP
-      working-directory: ./terraform
-      run: |
-        INSTANCE_PUBLIC_IP=$(terraform output -raw instance_public_ip)
-        echo "Instance Public IP: $INSTANCE_PUBLIC_IP"
-        echo "INSTANCE_PUBLIC_IP=$INSTANCE_PUBLIC_IP" >> $GITHUB_ENV
+          # Unzip the downloaded file
+          unzip terraform_1.0.0_linux_amd64.zip
 
-    # Step 9: Wait for EC2 instance to be ready
-    - name: Wait for EC2 Instance
-      run: |
-        sleep 30 # Wait for 30 seconds to ensure EC2 instance is ready
+          # Move the terraform binary to the appropriate directory
+          sudo mv terraform /usr/local/bin/
 
-    # Step 10: Deploy to EC2 instance via SSH
-    - name: Deploy to EC2 instance via SSH
-      run: |
-        ssh -o "StrictHostKeyChecking=no" -i ~/.ssh/id_rsa ec2-user@${{ env.INSTANCE_PUBLIC_IP }} << 'EOF'
-        git clone https://github.com/yourusername/your-repo.git
-        cd your-repo
-        npm install
-        npm start
-        EOF
+          # Verify the installation
+          terraform --version
 
-    # Optional: Terminate EC2 instance after deployment (to save cost)
-    - name: Terminate EC2 instance
-      working-directory: ./terraform
-      run: |
-        terraform destroy -auto-approve \
-          -var "aws_access_key=${{ secrets.AWS_ACCESS_KEY_ID }}" \
-          -var "aws_secret_key=${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+      # Step 6: Initialize Terraform
+      - name: Initialize Terraform
+        working-directory: ./terraform
+        run: terraform init
+
+      # Step 7: Apply Terraform
+      - name: Apply Terraform
+        working-directory: ./terraform
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          terraform apply -auto-approve \
+            -var "aws_access_key=${{ secrets.AWS_ACCESS_KEY_ID }}" \
+            -var "aws_secret_key=${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
+            -var "key_pair=${{ secrets.KEY_PAIR }}" \
+            -var "ami_id=${{ secrets.AMI_ID }}"
+
+      # Step 8: Get the public IP of the EC2 instance
+      - name: Get EC2 Instance Public IP
+        working-directory: ./terraform
+        id: get_ip
+        run: |
+          INSTANCE_PUBLIC_IP=$(terraform output -raw instance_public_ip)
+          echo "Instance Public IP: $INSTANCE_PUBLIC_IP"
+          echo "INSTANCE_PUBLIC_IP=$INSTANCE_PUBLIC_IP" >> $GITHUB_ENV
+
+      # Step 9: Wait for EC2 instance to be ready
+      - name: Wait for EC2 Instance
+        run: |
+          sleep 30 # Wait for 30 seconds to ensure EC2 instance is ready
+
+      # Step 10: Deploy to EC2 instance via SSH
+      - name: Deploy to EC2 instance via SSH
+        run: |
+          ssh -o "StrictHostKeyChecking=no" -i ~/.ssh/id_rsa ec2-user@${{ env.INSTANCE_PUBLIC_IP }} << 'EOF'
+          git clone https://github.com/yourusername/your-repo.git
+          cd your-repo
+          npm install
+          npm start
+          EOF
+
+      # Optional: Terminate EC2 instance after deployment (to save cost)
+      - name: Terminate EC2 instance
+        working-directory: ./terraform
+        run: |
+          terraform destroy -auto-approve \
+            -var "aws_access_key=${{ secrets.AWS_ACCESS_KEY_ID }}" \
+            -var "aws_secret_key=${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
+            -var "key_pair=${{ secrets.KEY_PAIR }}" \
+            -var "ami_id=${{ secrets.AMI_ID }}"
