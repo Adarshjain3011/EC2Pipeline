@@ -5,7 +5,7 @@ resource "aws_instance" "app_instance" {
   key_name      = var.key_pair
 
   tags = {
-    Name = "NodeAppInstance1"
+    Name = "NodeAppInstance2"
   }
 
   # Enable public IP address
@@ -26,7 +26,7 @@ resource "aws_instance" "app_instance" {
 
 # Security Group
 resource "aws_security_group" "app_sg" {
-  name        = "app_security_group_unique"
+  name        = "app_security_group_unique2"
   description = "Allow SSH and HTTP traffic"
   vpc_id      = "vpc-0e4b9c9310698f115"
 
