@@ -36,8 +36,9 @@ jobs:
     - name: Set up Terraform
       run: |
         sudo apt-get install -y unzip
+        sudo rm -rf /usr/local/bin/terraform  # Use -r to remove directories recursively
         curl -LO https://releases.hashicorp.com/terraform/1.0.0/terraform_1.0.0_linux_amd64.zip
-        unzip -o terraform_1.0.0_linux_amd64.zip  # Add -o to force overwrite
+        unzip -o terraform_1.0.0_linux_amd64.zip
         sudo mv terraform /usr/local/bin/
         terraform --version
 
