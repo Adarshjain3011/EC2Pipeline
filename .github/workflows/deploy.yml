@@ -38,10 +38,15 @@ jobs:
           # Install unzip if it's not already installed
           sudo apt-get install -y unzip
 
-          # Remove any existing terraform binary
+          # Remove any existing terraform binary or directory
           if [ -f /usr/local/bin/terraform ]; then
-          echo "Removing existing terraform binary"
-          sudo rm /usr/local/bin/terraform
+            echo "Removing existing terraform binary"
+            sudo rm /usr/local/bin/terraform
+          fi
+
+          if [ -d /usr/local/bin/terraform ]; then
+            echo "Removing existing terraform directory"
+            sudo rm -rf /usr/local/bin/terraform
           fi
 
           # Download the specified version of Terraform
