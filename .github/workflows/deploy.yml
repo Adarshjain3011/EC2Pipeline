@@ -38,10 +38,18 @@ jobs:
         sudo apt-get install -y unzip
         # Remove existing terraform directory if it exists
         if [ -d /usr/local/bin/terraform ]; then
+        echo "Removing existing terraform directory"
         sudo rm -rf /usr/local/bin/terraform  # Forcefully remove the terraform directory
         fi
+        # Download Terraform
         curl -LO https://releases.hashicorp.com/terraform/1.0.0/terraform_1.0.0_linux_amd64.zip
-        unzip -o terraform_1.0.0_linux_amd64.zip
+        # Unzip and move the terraform binary to /usr/local/bin
+        unzip terraform_1.0.0_linux_amd64.zip
+        # Check if terraform is a directory, if so, remove it
+        if [ -d terraform ]; then
+        echo "Removing old terraform directory from the unzipped content"
+        rm -rf terraform
+        fi
         sudo mv terraform /usr/local/bin/
         terraform --version
 
