@@ -5,7 +5,7 @@ resource "aws_instance" "app_instance" {
   key_name      = var.key_pair
 
   tags = {
-    Name = "NodeAppInstance"
+    Name = "NodeAppInstance1"
   }
 
   # Enable public IP address

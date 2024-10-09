@@ -14,7 +14,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-          # Step 2: Set up Node.js
+      # Step 2: Set up Node.js
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
@@ -22,9 +22,9 @@ jobs:
 
       # Step 3: Install project dependencies
       - name: Install dependencies
-        run: npm install 
+        run: npm install
 
-      # Step 2: Configure AWS credentials for Terraform
+      # Step 4: Configure AWS credentials for Terraform
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -32,13 +32,13 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-south-1 # Replace with your region
 
-      # Step 3: Set up Terraform using official HashiCorp action
+      # Step 5: Set up Terraform using official HashiCorp action
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_wrapper: false
 
-      # Step 4: Initialize and validate Terraform
+      # Step 6: Initialize and validate Terraform
       - name: Initialize Terraform
         working-directory: ./terraform
         run: terraform init
@@ -47,6 +47,7 @@ jobs:
         working-directory: ./terraform
         run: terraform validate
 
+      # Step 7: Apply Terraform
       - name: Apply Terraform
         working-directory: ./terraform
         env:
@@ -57,10 +58,10 @@ jobs:
             -var "aws_access_key=${{ secrets.AWS_ACCESS_KEY_ID }}" \
             -var "aws_secret_key=${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
             -var "key_pair=${{ secrets.KEY_PAIR }}" \
-            # -var "ami_id=${{ secrets.AMI_ID }}"
+            # Remove AMI_ID if it's not necessary
+            # -var "ami_id=${{ secrets.AMI_ID }}" 
 
-
-      # Step 6: Get the public IP of the EC2 instance
+      # Step 8: Get the public IP of the EC2 instance
       - name: Get EC2 Instance Public IP
         working-directory: ./terraform
         id: get_ip
@@ -69,19 +70,23 @@ jobs:
           echo "Instance Public IP: $INSTANCE_PUBLIC_IP"
           echo "INSTANCE_PUBLIC_IP=$INSTANCE_PUBLIC_IP" >> $GITHUB_ENV
 
-      # Step 7: Wait for EC2 instance to be ready
+      # Step 9: Wait for EC2 instance to be ready
       - name: Wait for EC2 Instance
         run: |
           echo "Waiting for EC2 instance to be ready..."
           sleep 60
 
-      # Step 8: SSH into EC2 instance and deploy code
+      # Step 10: SSH into EC2 instance and deploy code
       - name: Deploy to EC2 instance via SSH
         env:
           EC2_PUBLIC_IP: ${{ env.INSTANCE_PUBLIC_IP }}
         run: |
           echo "Deploying code to EC2 instance..."
+          mkdir -p ~/.ssh
+          echo "${{ secrets.YOUR_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
           ssh -o "StrictHostKeyChecking=no" -i ~/.ssh/id_rsa ec2-user@${{ env.EC2_PUBLIC_IP }} << 'EOF'
+            # Deploy your application code
             git clone https://github.com/yourusername/your-repo.git
             cd your-repo
             npm install
@@ -94,4 +99,5 @@ jobs:
         run: |
           terraform destroy -auto-approve \
             -var "key_pair=${{ secrets.KEY_PAIR }}" \
-            -var "ami_id=${{ secrets.AMI_ID }}"
+            # Remove AMI_ID if it's not necessary
+            # -var "ami_id=${{ secrets.AMI_ID }}"
