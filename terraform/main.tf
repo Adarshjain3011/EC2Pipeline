@@ -26,8 +26,9 @@ resource "aws_instance" "app_instance" {
 
 # Security Group
 resource "aws_security_group" "app_sg" {
-  name        = "app_security_group"
+  name        = "app_security_group_unique"
   description = "Allow SSH and HTTP traffic"
+  vpc_id      = "vpc-0e4b9c9310698f115"
 
   ingress {
     from_port   = 22
