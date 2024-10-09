@@ -57,7 +57,7 @@ jobs:
             -var "aws_access_key=${{ secrets.AWS_ACCESS_KEY_ID }}" \
             -var "aws_secret_key=${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
             -var "key_pair=${{ secrets.KEY_PAIR }}" \
-            -var "ami_id=${{ secrets.AMI_ID }}"
+            # -var "ami_id=${{ secrets.AMI_ID }}"
 
 
       # Step 6: Get the public IP of the EC2 instance
