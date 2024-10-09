@@ -14,17 +14,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # Step 2: Set up Node.js
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '16'
-
-      # Step 3: Install project dependencies
-      - name: Install dependencies
-        run: npm install
-
-      # Step 4: Configure AWS credentials for Terraform
+      # Step 2: Configure AWS credentials for Terraform
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -32,54 +22,33 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1 # Replace with your region
 
-      # Step 5: Set up Terraform
-      - name: Set up Terraform
-        run: |
-          # Install unzip if it's not already installed
-          sudo apt-get install -y unzip
+      # Step 3: Set up Terraform using official HashiCorp action
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_wrapper: false
 
-          # Remove any existing terraform binary or directory
-          if [ -f /usr/local/bin/terraform ]; then
-            echo "Removing existing terraform binary"
-            sudo rm /usr/local/bin/terraform
-          fi
-
-          if [ -d /usr/local/bin/terraform ]; then
-            echo "Removing existing terraform directory"
-            sudo rm -rf /usr/local/bin/terraform
-          fi
-
-          # Download the specified version of Terraform
-          curl -LO https://releases.hashicorp.com/terraform/1.0.0/terraform_1.0.0_linux_amd64.zip
-
-          # Unzip the downloaded file, forcing overwrite
-          unzip -o terraform_1.0.0_linux_amd64.zip
-    
-          # Move the terraform binary to the appropriate directory
-          sudo mv terraform /usr/local/bin/
-
-          # Verify the installation
-          terraform --version
-
-      # Step 6: Initialize Terraform
+      # Step 4: Initialize and validate Terraform
       - name: Initialize Terraform
         working-directory: ./terraform
         run: terraform init
 
-      # Step 7: Apply Terraform
+      - name: Validate Terraform configuration
+        working-directory: ./terraform
+        run: terraform validate
+
+      # Step 5: Apply Terraform to provision EC2 instance
       - name: Apply Terraform
         working-directory: ./terraform
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          TF_VAR_key_pair: "${{ secrets.KEY_PAIR }}"
+          TF_VAR_ami_id: "${{ secrets.AMI_ID }}"
         run: |
           terraform apply -auto-approve \
-            -var "aws_access_key=${{ secrets.AWS_ACCESS_KEY_ID }}" \
-            -var "aws_secret_key=${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
             -var "key_pair=${{ secrets.KEY_PAIR }}" \
             -var "ami_id=${{ secrets.AMI_ID }}"
 
-      # Step 8: Get the public IP of the EC2 instance
+      # Step 6: Get the public IP of the EC2 instance
       - name: Get EC2 Instance Public IP
         working-directory: ./terraform
         id: get_ip
@@ -88,19 +57,23 @@ jobs:
           echo "Instance Public IP: $INSTANCE_PUBLIC_IP"
           echo "INSTANCE_PUBLIC_IP=$INSTANCE_PUBLIC_IP" >> $GITHUB_ENV
 
-      # Step 9: Wait for EC2 instance to be ready
+      # Step 7: Wait for EC2 instance to be ready
       - name: Wait for EC2 Instance
         run: |
-          sleep 30 # Wait for 30 seconds to ensure EC2 instance is ready
+          echo "Waiting for EC2 instance to be ready..."
+          sleep 60
 
-      # Step 10: Deploy to EC2 instance via SSH
+      # Step 8: SSH into EC2 instance and deploy code
       - name: Deploy to EC2 instance via SSH
+        env:
+          EC2_PUBLIC_IP: ${{ env.INSTANCE_PUBLIC_IP }}
         run: |
-          ssh -o "StrictHostKeyChecking=no" -i ~/.ssh/id_rsa ec2-user@${{ env.INSTANCE_PUBLIC_IP }} << 'EOF'
-          git clone https://github.com/yourusername/your-repo.git
-          cd your-repo
-          npm install
-          npm start
+          echo "Deploying code to EC2 instance..."
+          ssh -o "StrictHostKeyChecking=no" -i ~/.ssh/id_rsa ec2-user@${{ env.EC2_PUBLIC_IP }} << 'EOF'
+            git clone https://github.com/yourusername/your-repo.git
+            cd your-repo
+            npm install
+            npm start
           EOF
 
       # Optional: Terminate EC2 instance after deployment (to save cost)
@@ -108,7 +81,5 @@ jobs:
         working-directory: ./terraform
         run: |
           terraform destroy -auto-approve \
-            -var "aws_access_key=${{ secrets.AWS_ACCESS_KEY_ID }}" \
-            -var "aws_secret_key=${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
             -var "key_pair=${{ secrets.KEY_PAIR }}" \
             -var "ami_id=${{ secrets.AMI_ID }}"
