@@ -47,7 +47,7 @@ jobs:
         working-directory: ./terraform
         run: terraform validate
 
-      # Step 7: Apply Terraform
+      # Step 7: Apply Terraform to create the EC2 instance
       - name: Apply Terraform
         working-directory: ./terraform
         env:
@@ -57,8 +57,7 @@ jobs:
           terraform apply -auto-approve \
             -var "aws_access_key=${{ secrets.AWS_ACCESS_KEY_ID }}" \
             -var "aws_secret_key=${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
-            -var "key_pair=${{ secrets.KEY_PAIR }}" \
-            # Remove AMI_ID if it's not necessary
+            -var "key_pair=${{ secrets.KEY_PAIR }}"
 
       # Step 8: Get the public IP of the EC2 instance
       - name: Get EC2 Instance Public IP
@@ -82,21 +81,23 @@ jobs:
         run: |
           echo "Deploying code to EC2 instance..."
           mkdir -p ~/.ssh
-          echo "${{ secrets.YOUR_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh -o "StrictHostKeyChecking=no" -i ~/.ssh/id_rsa ubuntu@${{ env.EC2_PUBLIC_IP }} << 'EOF'
-            # Deploy your application code
+          # Create adarsh-password.pem from the secret
+          echo "${{ secrets.YOUR_SSH_PRIVATE_KEY }}" > ~/.ssh/adarsh-password.pem
+          chmod 600 ~/.ssh/adarsh-password.pem
+          # SSH into EC2 and run deployment commands
+          ssh -o "StrictHostKeyChecking=no" -i ~/.ssh/adarsh-password.pem ubuntu@${{ env.EC2_PUBLIC_IP }} << 'EOF'
+            # Commands to deploy your application
             git clone https://github.com/Adarshjain3011/EC2Pipeline.git
-            cd your-repo
+            cd EC2Pipeline # Change to your repository folder
             npm install
             npm start
           EOF
 
-      # # Optional: Terminate EC2 instance after deployment (to save cost)
+      # Optional: Terminate EC2 instance after deployment (to save cost)
       # - name: Terminate EC2 instance
       #   working-directory: ./terraform
       #   run: |
       #     terraform destroy -auto-approve \
-      #       -var "key_pair=${{ secrets.KEY_PAIR }}" \
+      #       -var "key_pair=${{ secrets.KEY_PAIR }}"
       #       # Remove AMI_ID if it's not necessary
       #       # -var "ami_id=${{ secrets.AMI_ID }}"
