@@ -19,7 +19,7 @@ app.get("/user",(req,res)=>{
             name:"temp",
             email:"temp@gmail.com",
         },
-        message:"done ",
+        message:"done dd ",
         error:null,
 
     })
