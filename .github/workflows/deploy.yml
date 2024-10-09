@@ -14,13 +14,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+          # Step 2: Set up Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+      # Step 3: Install project dependencies
+      - name: Install dependencies
+        run: npm install 
+
       # Step 2: Configure AWS credentials for Terraform
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1 # Replace with your region
+          aws-region: ap-south-1 # Replace with your region
 
       # Step 3: Set up Terraform using official HashiCorp action
       - name: Setup Terraform
@@ -37,16 +47,18 @@ jobs:
         working-directory: ./terraform
         run: terraform validate
 
-      # Step 5: Apply Terraform to provision EC2 instance
       - name: Apply Terraform
         working-directory: ./terraform
         env:
-          TF_VAR_key_pair: "${{ secrets.KEY_PAIR }}"
-          TF_VAR_ami_id: "${{ secrets.AMI_ID }}"
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
           terraform apply -auto-approve \
+            -var "aws_access_key=${{ secrets.AWS_ACCESS_KEY_ID }}" \
+            -var "aws_secret_key=${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
             -var "key_pair=${{ secrets.KEY_PAIR }}" \
             -var "ami_id=${{ secrets.AMI_ID }}"
+
 
       # Step 6: Get the public IP of the EC2 instance
       - name: Get EC2 Instance Public IP
